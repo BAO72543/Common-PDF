@@ -97,11 +97,11 @@ python3 run.py "my_portfolio.pdf" -v
 
 ```
 ----------------------------------------------------------------
-Document: LeHuynhGiaBao-THPT-2309.pdf
+Document: Test.pdf
 Size:     6,060 KB (5.92 MB) (16 pages)
 Limit:    <= 2000 KB (Target: 1,980 KB)
 Quality:  Good Screen (120 DPI)
-Output:   LeHuynhGiaBao-THPT-2309_compressed.pdf
+Output:   Test_compressed.pdf
 Result:   1,893 KB (1.85 MB) [OK <= 2000 KB]
 ----------------------------------------------------------------
 Done: 1 single file under 2000 KB. Ready for Common App upload.
