@@ -1,59 +1,36 @@
-# Common App PDF Splitter & Universal Compressor
+# Common App PDF Compressor
 
-> A lightweight, student-first Python CLI tool to split and universally compress heavy PDF documents for **Common App's upload slots (<= 2.0 MB each)** without sacrificing visual consistency.
-
----
-
-## The Problem
-
-When submitting portfolios, school profiles, academic transcripts, or additional information to the **Common App**, applicants are given **up to 3 upload slots**, each strictly limited to **<= 2.0 MB**.
-
-Traditional tools and online converters often cause issues:
-
-1. **Unnecessary Quality Loss**: Many tools degrade quality to compress a file into 2 parts, even when using 3 parts would preserve 100% native uncompressed quality or achieve much higher resolution.
-2. **Inconsistent Quality Across Pages**: Naive scripts compress only the parts that exceed 2 MB. As a result, Part 1 might look ultra-crisp while Part 2 or 3 looks blurry and pixelated.
-3. **File Overwrites**: Tools that dump generic file names in the root folder force you to delete or move previous files before processing a new document.
-4. **File Size Rejection**: Files hovering right around 2,000 KB frequently get rejected by Common App's strict byte validator.
-5. **Privacy Concerns**: Uploading confidential academic records or personal portfolios to online web converters is risky.
+> A lightweight, student-first Python CLI tool to compress heavy PDF documents into a **single file under 2000 KB** for Common App upload slots while preserving maximum visual sharpness.
 
 ---
 
-## Core Decision Hierarchy
+## Overview
 
-The tool is built around maximizing document quality for college admissions officers:
+When submitting documents to the **Common App**, each upload slot strictly enforces the limit:
 
-### Priority 1: Original Quality First (Lossless)
-- If dividing into 2 parts keeps both files under 2 MB without compression, it uses **2 parts at 100% original quality**.
-- If 2 parts exceeds 2 MB uncompressed, but dividing into 3 parts stays under 2 MB uncompressed, it chooses **3 parts at 100% original quality**.
-- **Rule**: Never degrade image or text quality just to force a 2-file split if 3 lossless slots can preserve native clarity.
+> *"This file cannot be uploaded. Please ensure the combined file size is 2000 KB or less."*
 
-### Priority 2: Higher Quality Maximization (When Compression is Required)
-- **If neither 2 parts nor 3 parts can fit uncompressed under 2 MB**, compression is required.
-- In this case, the tool **chooses 3 parts**. Distributing pages across 3 parts allows each file to maintain a **higher DPI and sharper visual quality** (e.g., 180 DPI instead of 150 DPI) while staying strictly under 2.0 MB.
-
-### Universal Quality Guarantee
-- Whenever compression is applied, the tool enforces the **exact same DPI and compression profile across all parts**.
-- Admissions officers see a completely uniform document with consistent resolution and clarity from the first page to the last.
+This tool takes any heavy PDF and compresses it directly into **one single file** under 2000 KB, using a fine-grained, micro-stepped DPI ladder to retain the highest possible resolution.
 
 ---
 
 ## Features
 
-- **Quality-First Optimization**: Preserves 100% original lossless quality whenever possible. When compression is needed, chooses 3 parts to maximize resolution and sharpness.
-- **Smart Size-Aware Partitioning**: Instead of blindly dividing by page count (e.g. 5/5), analyzes actual byte weights per page so heavy image scans are balanced across files, avoiding unnecessary extra splits.
-- **Dedicated Output Folders**: Each document is placed into its own folder (`<filename>_output/`), allowing you to process multiple documents back-to-back without file collisions or overwriting old files.
-- **Uniform Output Naming**: Outputs clean `1.pdf`, `2.pdf`, and `3.pdf`, directly matching Common App upload slots.
-- **Safe Margin (1.95 MB)**: Targets 1.95 MB (~2,044 KB) by default to prevent upload failures caused by MB vs. MiB rounding differences.
-- **100% Local & Private**: Runs entirely on your machine via Ghostscript and PikePDF. No documents leave your computer.
-- **Smart Auto-Detection**: Drop your PDF in the folder and run `python3 run.py` -- it detects and processes your document automatically.
+- **Single File Output**: Compresses the entire document into 1 single file without splitting pages.
+- **Strict 2000 KB Compliance**: Targets 1980 KB to provide a safe buffer against server-side byte rounding.
+- **Maximum Resolution Retention**: Uses narrow DPI steps (300 down through 280, 260, 240, 220, 210, 205, 200, 195, 190, 185, 180, 175, 170, 165, 160, 155, 150, 140, 130, 120, 110, 100, 96, 85, 72, 60, 50, 36). It stops at the exact threshold where the file fits <= 2000 KB, preserving maximum clarity.
+- **Lossless When Possible**: If the document is already <= 2000 KB, it retains 100% native original quality.
+- **Clean Output Naming**: Automatically creates `<filename>_compressed.pdf` next to your original file.
+- **100% Local & Private**: Runs entirely on your machine via Ghostscript. No documents are uploaded to online web converters.
+- **Concise Logging**: Displays original size, pages, chosen DPI quality, final size in KB/MB, and clear confirmation.
 
 ---
 
 ## Requirements
 
 - **Python 3.8+**
-- **Ghostscript** (Standard PDF rendering and compression engine)
-- **pikepdf** (Fast, lossless PDF manipulation engine)
+- **Ghostscript** (Standard PDF rendering engine)
+- **pikepdf** (Fast PDF manipulation engine)
 
 ### Installing Dependencies
 
@@ -83,7 +60,7 @@ pip3 install pikepdf
 
 ## Quickstart
 
-### 1. Simple Run (Auto-detect & Auto-optimize)
+### 1. Interactive Run (Auto-detect)
 
 Place your PDF in the same folder as `run.py` and run:
 
@@ -91,10 +68,7 @@ Place your PDF in the same folder as `run.py` and run:
 python3 run.py
 ```
 
-- If 2 parts fits uncompressed, it outputs `1.pdf` and `2.pdf` (100% lossless).
-- If 3 parts fits uncompressed, it outputs `1.pdf`, `2.pdf`, and `3.pdf` (100% lossless).
-- If compression is required, it chooses 3 parts (`1.pdf`, `2.pdf`, `3.pdf`) to maximize visual quality.
-- All outputs are placed in a dedicated folder named `<your_pdf_name>_output/`.
+If one PDF is found, press Enter to process. If multiple PDFs are found, select by number.
 
 ### 2. Specify File via Command Line
 
@@ -102,65 +76,42 @@ python3 run.py
 python3 run.py "my_transcript.pdf"
 ```
 
+The script outputs `my_transcript_compressed.pdf` right next to the original file.
+
 ### 3. Custom Options
 
 ```bash
-# Force exactly 2 parts or 3 parts (overriding auto-optimization)
-python3 run.py "my_document.pdf" --parts 2
-python3 run.py "my_document.pdf" --parts 3
+# Set a custom target threshold in KB (default: 1980 KB)
+python3 run.py "my_portfolio.pdf" --target-kb 1950
 
-# Set a custom target threshold (e.g. 1.80 MB)
-python3 run.py "my_portfolio.pdf" --target-mb 1.80
+# Specify custom output path
+python3 run.py "my_portfolio.pdf" -o "./output/portfolio_ready.pdf"
 
-# Specify a custom output directory
-python3 run.py "my_portfolio.pdf" --output-dir ./custom_folder
+# View internal DPI trial search
+python3 run.py "my_portfolio.pdf" -v
 ```
 
 ---
 
-## Output Structure
-
-Each processed document automatically gets its own dedicated folder. This allows you to process multiple documents (e.g., transcripts, portfolios, certificates) back-to-back without file collisions:
+## Example Output
 
 ```
-project_folder/
-├── Transcript.pdf
-├── Portfolio.pdf
-├── Transcript_output/
-│   ├── 1.pdf           -> Upload to Slot 1
-│   ├── 2.pdf           -> Upload to Slot 2
-│   └── 3.pdf           -> Upload to Slot 3 (100% original quality)
-└── Portfolio_output/
-    ├── 1.pdf           -> Upload to Slot 1
-    ├── 2.pdf           -> Upload to Slot 2
-    └── 3.pdf           -> Upload to Slot 3 (maximum universal DPI)
-```
-
----
-
-## How the Decision Flow Works
-
-```
-Original Multi-Page PDF
-          |
-          v
-[Phase 1: Original Quality Check]
-Does 2 parts fit uncompressed (<= 1.95 MB)?
- |-- YES --> Save 2 parts with 100% Original Quality.
- `-- NO  --> Does 3 parts fit uncompressed (<= 1.95 MB)?
-               |-- YES --> Save 3 parts with 100% Original Quality!
-               |           (Avoids compression blurriness entirely).
-               `-- NO  --> [Phase 2: Universal Quality Compression]
-                           Neither 2 nor 3 fits uncompressed.
-                           Choose 3 parts to maximize DPI and visual sharpness!
-                           Find highest universal DPI where all 3 parts are <= 1.95 MB.
+----------------------------------------------------------------
+Document: LeHuynhGiaBao-THPT-2309.pdf
+Size:     6,060 KB (5.92 MB) (16 pages)
+Limit:    <= 2000 KB (Target: 1,980 KB)
+Quality:  Good Screen (120 DPI)
+Output:   LeHuynhGiaBao-THPT-2309_compressed.pdf
+Result:   1,893 KB (1.85 MB) [OK <= 2000 KB]
+----------------------------------------------------------------
+Done: 1 single file under 2000 KB. Ready for Common App upload.
 ```
 
 ---
 
 ## Disclaimer
 
-This is an open-source, independent helper utility created for students and applicants. It is not affiliated with or endorsed by the Common Application.
+This is an open-source helper utility created for students and applicants. It is not affiliated with or endorsed by the Common Application.
 
 ---
 
